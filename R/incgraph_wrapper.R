@@ -95,14 +95,8 @@ links.check <- function(links, amnt.nodes) {
 #' reset(net)
 #' network.as.matrix(net)
 #'
-#' @author Cannoodt Robrecht, \email{robrecht.cannoodt@@gmail.com}
-#' @references Cannoodt, R. et al. (2015)
-#' IncGraph: A graphlet-based approach for characterising
-#' topological changes in evolving networks. Submitted to Bioinformatics.
-#' @seealso \code{\link{calculate.orbit.counts}}, \code{\link{calculate.delta}}
+#' @seealso \code{\link{incgraph}}, \code{\link{calculate.orbit.counts}}, \code{\link{calculate.delta}}
 #'
-#' @useDynLib incgraph
-#' @import methods Rcpp
 #' @export
 new.incgraph.network <- function(amnt.nodes=NULL, links=NULL) {
   if (is.null(links) && is.null(amnt.nodes)) {
@@ -130,8 +124,7 @@ new.incgraph.network <- function(amnt.nodes=NULL, links=NULL) {
 #' @seealso See \code{\link{new.incgraph.network}} for examples and usage.
 #'
 #' @param network An instance of the incgraph.network class
-#' @useDynLib incgraph
-#' @import methods Rcpp
+#'
 #' @export
 reset <- function(network) {
   network.check(network)
@@ -151,8 +144,6 @@ reset <- function(network) {
 #' @param network An instance of the incgraph.network class
 #' @param i A node in \code{network}
 #' @param j A node in \code{network}
-#' @useDynLib incgraph
-#' @import methods Rcpp
 #' @export
 flip <- function(network, i, j) {
   network.check(network)
@@ -178,8 +169,6 @@ flip <- function(network, i, j) {
 #' @param network An instance of the incgraph.network class
 #' @param links A matrix with 2 columns and N rows, 1 row for each edge to be loaded in the network
 #'
-#' @useDynLib incgraph
-#' @import methods Rcpp
 #' @export
 set.network <- function(network, links) {
   network.check(network)
@@ -212,8 +201,6 @@ set.network <- function(network, links) {
 #' @return An N-by-73 matrix, with N the number of nodes in the network and 1 column for each possible orbit.
 #' The value of \code{mat[i,j]} is the number of times node \code{i} has orbit \code{j} in a subgraph in the network.
 #'
-#' @useDynLib incgraph
-#' @import methods Rcpp
 #' @export
 calculate.orbit.counts <- function(network) {
   network.check(network)
@@ -242,14 +229,13 @@ calculate.orbit.counts <- function(network) {
 #' @param network An instance of the incgraph.network class
 #' @param i A node in \code{network}
 #' @param j A node in \code{network}
-#' @useDynLib incgraph
-#' @import methods Rcpp
+#'
 #' @export
 orca.halfdelta <- function(network, i, j) {
   network.check(network)
   node.id.check(network, i, var.name="i")
   node.id.check(network, j, var.name="j")
-  # todo: include orca code in own cpp file?
+
   amnt.nodes <- network$amnt.nodes
   mat <- network.as.matrix(network)
   if (network$contains(i-1, j-1)) {
@@ -266,7 +252,11 @@ orca.halfdelta <- function(network, i, j) {
   new.mat <- apply(mat, c(1,2), function(x) map[x])
   orbit.counts <- orca::count5(new.mat)
   do.call("rbind", lapply(map, function(x) {
-    if(is.na(x)) rep.int(0, 73) else orbit.counts[x,]
+    if (is.na(x)) {
+      rep.int(0, 73)
+    } else {
+      orbit.counts[x,]
+    }
   }))
 
 }
@@ -295,14 +285,15 @@ orca.halfdelta <- function(network, i, j) {
 #' The value of \code{list$add[i,j]} (resp. \code{list$rem[i,j]}) is the number of times a subgraph was added to (resp. removed from)
 #' the network such that node \code{i} has orbit \code{j} in that subgraph.
 #'
-#' @useDynLib incgraph
-#' @import methods Rcpp
 #' @export
 calculate.delta <- function(network, i, j) {
   network.check(network)
   node.id.check(network, i, var.name="i")
   node.id.check(network, j, var.name="j")
-  network$calculate.delta(i-1, j-1)
+  out <- network$calculate.delta(i-1, j-1)
+  colnames(out$add) <- paste0("O", seq_len(73)-1)
+  colnames(out$rem) <- paste0("O", seq_len(73)-1)
+  out
 }
 
 #' @title Neighbours
@@ -319,13 +310,11 @@ calculate.delta <- function(network, i, j) {
 #' @param i A node in \code{network}
 #' @return Returns all neighbours of node \code{i}
 #'
-#' @useDynLib incgraph
-#' @import methods Rcpp
 #' @export
 get.neighbours <- function(network, i) {
   network.check(network)
   node.id.check(network, i, var.name="i")
-  network$get.neighbours(i-1)
+  network$get.neighbours(i-1)+1
 }
 
 #' @title Contains
@@ -343,8 +332,6 @@ get.neighbours <- function(network, i) {
 #' @param j A node in \code{network}
 #' @return \code{TRUE} if the network contains (i, j)
 #'
-#' @useDynLib incgraph
-#' @import methods Rcpp
 #' @export
 contains <- function(network, i, j) {
   network.check(network)
@@ -364,8 +351,7 @@ contains <- function(network, i, j) {
 #' @seealso See \code{\link{new.incgraph.network}} for examples and usage.
 #'
 #' @param network An instance of the incgraph.network class
-#' @useDynLib incgraph
-#' @import methods Rcpp
+#'
 #' @export
 network.as.matrix <- function(network) {
   network.check(network)
